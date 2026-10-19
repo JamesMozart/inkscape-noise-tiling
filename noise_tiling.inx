@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+    <name>Noise Tiling</name>
+    <id>org.example.noisetiling</id>
+
+    <param name="width" type="float" min="10" max="5000" gui-text="Tile Area Width (px)">300</param>
+    <param name="height" type="float" min="10" max="5000" gui-text="Tile Area Height (px)">300</param>
+    <param name="scale_noise" type="float" min="0.001" max="100" gui-text="Noise Scale (Smaller = smoother)">1</param>
+    <param name="threshold" type="float" min="0" max="1" gui-text="Probability Threshold (0-1)">0.3</param>
+    <param name="seed" type="int" min="0" max="2147483647" gui-text="Noise Seed (0 = random)">0</param>
+    <param name="attempts" type="int" min="10" max="5000" gui-text="Max Placement Attempts">500</param>
+    <param name="min_scale" type="float" min="0.1" max="1" gui-text="Min Random Scale">0.6</param>
+    <param name="max_scale" type="float" min="1" max="5" gui-text="Max Random Scale">1.4</param>
+    <param name="min_rotate" type="float" min="-360" max="360" gui-text="Min Random Rotation (deg)">0</param>
+    <param name="max_rotate" type="float" min="-360" max="360" gui-text="Max Random Rotation (deg)">360</param>
+    <param name="padding" type="float" min="0" max="5000" gui-text="Padding between objects (px)">2</param>
+
+    <effect>
+        <object-type>all</object-type>
+        <effects-menu>
+            <submenu name="Generate from Path"/>
+        </effects-menu>
+    </effect>
+    <script>
+        <command location="inx" interpreter="python">noise_tiling.py</command>
+    </script>
+</inkscape-extension>
