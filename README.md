@@ -27,7 +27,7 @@ Requires Inkscape 1.x (Python 3 + `inkex`).
 ## Usage
 
 1. Select one or more objects to use as templates.
-2. Go to **Extensions → Generate from Path → Simplex Noise Tiling**.
+2. Go to **Extensions → Generate from Path → Noise Tiling**.
 3. Adjust parameters and click **Apply**.
 
 ## Parameters
