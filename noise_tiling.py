@@ -4,12 +4,13 @@ import random
 import math
 from inkex import Transform
 
+# ============ Lightweight Simplex Noise (2D) ============
 class SimplexNoise:
-    def __init__(self, seed=42):
+    def __init__(self, seed=0):
         rng = random.Random(seed)
-        self.p = list(range(256))
-        rng.shuffle(self.p)
-        self.perm = self.p * 2
+        self.perm = list(range(256))
+        rng.shuffle(self.perm)
+        self.perm = self.perm * 2
         self.grad3 = [
             (1,1), (-1,1), (1,-1), (-1,-1),
             (1,0), (-1,0), (0,1), (0,-1)
@@ -20,15 +21,13 @@ class SimplexNoise:
     def _dot(self, g, x, y):
         return g[0]*x + g[1]*y
 
-    def noise2d(self, xin, yin):
+    def noise(self, xin, yin):
         s = (xin + yin) * self.F2
         i = math.floor(xin + s)
         j = math.floor(yin + s)
         t = (i + j) * self.G2
-        X0 = i - t
-        Y0 = j - t
-        x0 = xin - X0
-        y0 = yin - Y0
+        x0 = xin - (i - t)
+        y0 = yin - (j - t)
 
         if x0 > y0:
             i1, j1 = 1, 0
@@ -42,6 +41,7 @@ class SimplexNoise:
 
         ii = int(i) & 255
         jj = int(j) & 255
+
         gi0 = self.perm[ii + self.perm[jj]] % 8
         gi1 = self.perm[ii + i1 + self.perm[jj + j1]] % 8
         gi2 = self.perm[ii + 1 + self.perm[jj + 1]] % 8
@@ -51,16 +51,42 @@ class SimplexNoise:
         if t0 > 0:
             t0 *= t0
             n0 = t0 * t0 * self._dot(self.grad3[gi0], x0, y0)
+
         t1 = 0.5 - x1*x1 - y1*y1
         if t1 > 0:
             t1 *= t1
             n1 = t1 * t1 * self._dot(self.grad3[gi1], x1, y1)
+
         t2 = 0.5 - x2*x2 - y2*y2
         if t2 > 0:
             t2 *= t2
             n2 = t2 * t2 * self._dot(self.grad3[gi2], x2, y2)
 
         return 70.0 * (n0 + n1 + n2)
+
+    def fbm(self, x, y, octaves=4, lacunarity=2.0, gain=0.5):
+        total = 0.0
+        amplitude = 1.0
+        frequency = 1.0
+        max_amp = 0.0
+        for _ in range(max(1, int(octaves))):
+            total += amplitude * self.noise(x * frequency, y * frequency)
+            max_amp += amplitude
+            amplitude *= gain
+            frequency *= lacunarity
+        return total / max_amp if max_amp > 0 else 0.0
+
+    def turbulence(self, x, y, octaves=4, lacunarity=2.0, gain=0.5):
+        total = 0.0
+        amplitude = 1.0
+        frequency = 1.0
+        max_amp = 0.0
+        for _ in range(max(1, int(octaves))):
+            total += amplitude * abs(self.noise(x * frequency, y * frequency))
+            max_amp += amplitude
+            amplitude *= gain
+            frequency *= lacunarity
+        return (2.0 * total / max_amp - 1.0) if max_amp > 0 else 0.0
 
 
 class NoiseTiling(inkex.EffectExtension):
@@ -70,12 +96,40 @@ class NoiseTiling(inkex.EffectExtension):
         pars.add_argument("--scale_noise", type=float, default=0.02)
         pars.add_argument("--threshold", type=float, default=0.3)
         pars.add_argument("--seed", type=int, default=0)
+        pars.add_argument(
+            "--noise_type",
+            type=str,
+            default="simplex",
+            choices=["simplex", "fbm", "turbulence"],
+            dest="noise_type",
+        )
+        pars.add_argument("--octaves", type=int, default=4)
+        pars.add_argument("--lacunarity", type=float, default=2.0)
+        pars.add_argument("--gain", type=float, default=0.5)
         pars.add_argument("--attempts", type=int, default=500)
         pars.add_argument("--min_scale", type=float, default=0.6)
         pars.add_argument("--max_scale", type=float, default=1.4)
         pars.add_argument("--min_rotate", type=float, default=0.0)
         pars.add_argument("--max_rotate", type=float, default=360.0)
         pars.add_argument("--padding", type=float, default=2)
+
+    def _sample_noise(self, noise, nx, ny):
+        kind = self.options.noise_type
+        if kind == "fbm":
+            return noise.fbm(
+                nx, ny,
+                octaves=self.options.octaves,
+                lacunarity=self.options.lacunarity,
+                gain=self.options.gain,
+            )
+        if kind == "turbulence":
+            return noise.turbulence(
+                nx, ny,
+                octaves=self.options.octaves,
+                lacunarity=self.options.lacunarity,
+                gain=self.options.gain,
+            )
+        return noise.noise(nx, ny)
 
     def effect(self):
         if not self.svg.selected:
@@ -114,8 +168,7 @@ class NoiseTiling(inkex.EffectExtension):
             cand_x = area_x + random.random() * area_w
             cand_y = area_y + random.random() * area_h
 
-            n_val = noise_gen.noise2d(cand_x * self.options.scale_noise,
-                                      cand_y * self.options.scale_noise)
+            n_val = self._sample_noise(noise_gen, cand_x * self.options.scale_noise, cand_y * self.options.scale_noise)
             probability = (n_val + 1.0) / 2.0
 
             if probability < self.options.threshold:
