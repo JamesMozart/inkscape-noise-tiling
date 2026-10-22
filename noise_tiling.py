@@ -156,11 +156,17 @@ class NoiseTiling(inkex.EffectExtension):
         noise_gen = SimplexNoise(seed=noise_seed)
         rng = random.Random(noise_seed)
 
+        container = inkex.Group()
+        container.set('id', self.svg.get_unique_id('noise_tiles'))
+        parent = self.svg.get_current_layer()
+        if parent is None:
+            parent = self.svg.getroot()
+        parent.append(container)
+
         placed_bboxes = []
 
         attempts = 0
         max_attempts = self.options.attempts
-        placed_count = 0
 
         while attempts < max_attempts:
             attempts += 1
@@ -232,8 +238,9 @@ class NoiseTiling(inkex.EffectExtension):
             else:
                 new_elem.set('transform', str(tr))
 
+            container.append(new_elem)
+            
             placed_bboxes.append(cand_bbox)
-            placed_count += 1
 
 
 if __name__ == '__main__':
