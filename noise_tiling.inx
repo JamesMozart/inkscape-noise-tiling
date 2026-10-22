@@ -22,7 +22,7 @@
     <param name="max_scale" type="float" min="1" max="5" gui-text="Max Random Scale">1.4</param>
     <param name="min_rotate" type="float" min="-360" max="360" gui-text="Min Random Rotation (deg)">0</param>
     <param name="max_rotate" type="float" min="-360" max="360" gui-text="Max Random Rotation (deg)">360</param>
-    <param name="padding" type="float" min="0" max="5000" gui-text="Padding between objects (px)">2</param>
+    <param name="padding" type="float" min="-5000" max="5000" gui-text="Padding between objects (px, negtive is ok)">2</param>
 
     <effect>
         <object-type>all</object-type>
