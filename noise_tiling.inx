@@ -6,7 +6,7 @@
     <param name="width" type="float" min="10" max="5000" gui-text="Tile Area Width (px)">300</param>
     <param name="height" type="float" min="10" max="5000" gui-text="Tile Area Height (px)">300</param>
     <param name="scale_noise" type="float" min="0.001" max="100" gui-text="Noise Scale (Smaller = smoother)">1</param>
-    <param name="threshold" type="float" min="-1" max="1" gui-text="Probability Threshold (-1 to 1)">0.3</param>
+    <param name="threshold" type="float" min="-1" max="1" gui-text="Probability Threshold (-1 to 1, smaller for higher spawn chance)">0.3</param>
     <param name="seed" type="int" min="0" max="2147483647" gui-text="Noise Seed (0 = random)">0</param>
     <param name="noise_type" type="optiongroup" appearance="combo"
        gui-text="Noise type">
