@@ -4,6 +4,8 @@ Scatter randomized copies of selected objects over a region, with placement prob
 
 ![Example output](example.png)
 
+![Example output cats](cats.png)
+
 ## Features
 
 - Configurable noise type: **Simplex**, **fBm** (fractal Brownian motion), or **Turbulence**
@@ -41,7 +43,7 @@ Requires Inkscape 1.x (Python 3 + `inkex`).
 | Octaves | Number of noise layers summed (fBm / Turbulence only) |
 | Lacunarity | Frequency multiplier between octaves (fBm / Turbulence only) |
 | Gain | Amplitude multiplier between octaves (fBm / Turbulence only) |
-| Probability Threshold | Filter out low-noise positions (0–1) |
+| Probability Threshold | Filter out low-noise positions (-1 to 1) |
 | Noise Seed | `0` = random each run; any positive value reproduces the same layout |
 | Max Placement Attempts | Upper bound on placement tries |
 | Min/Max Random Scale | Scale range for each copy |

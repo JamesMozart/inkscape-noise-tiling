@@ -175,10 +175,8 @@ class NoiseTiling(inkex.EffectExtension):
             cand_y = area_y + random.random() * area_h
 
             n_val = self._sample_noise(noise_gen, cand_x * self.options.scale_noise, cand_y * self.options.scale_noise)
-            probability = (n_val + 1.0) / 2.0
+            probability = (n_val + 1.0) / 2.0 - self.options.threshold
 
-            if probability < self.options.threshold:
-                continue
             if random.random() > probability:
                 continue
 
