@@ -38,6 +38,7 @@ Requires Inkscape 1.x (Python 3 + `inkex`).
 | Param | Description |
 |---|---|
 | Tile Area Width/Height | Size of the tiling region (starts at template's top-left corner) |
+| Polar (elliptical) mode | Use elliptical polar-coordinate sampling and rotate each copy by its polar angle |
 | Noise Scale | Smaller = smoother/larger clusters |
 | Noise Type | Noise algorithm: `simplex` (single-octave), `fbm` (fractal sum), or `turbulence` (absolute-value fractal sum) |
 | Octaves | Number of noise layers summed (fBm / Turbulence only) |
