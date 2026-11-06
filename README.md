@@ -6,6 +6,8 @@ Scatter randomized copies of selected objects over a region, with placement prob
 
 ![Example output cats](cats.png)
 
+![Example output polar](example_polar.png)
+
 ## Features
 
 - Configurable noise type: **Simplex**, **fBm** (fractal Brownian motion), or **Turbulence**
