@@ -31,6 +31,14 @@ class NoiseTiling(inkex.EffectExtension):
         pars.add_argument("--max_rotate", type=float, default=360.0)
         pars.add_argument("--padding", type=float, default=2)
 
+        # ---- Polar mode option ----
+        pars.add_argument(
+            "--polar",
+            type=inkex.Boolean,
+            default=False,
+            help="Use elliptical polar-coordinate sampling and rotate objects by polar angle.",
+        )
+
     def _sample_noise_batch(self, noise, nx, ny):
         kind = self.options.noise_type
         if kind == "fbm":
@@ -44,6 +52,19 @@ class NoiseTiling(inkex.EffectExtension):
                                           lacunarity=self.options.lacunarity,
                                           gain=self.options.gain)
         return noise.noise_batch(nx, ny)
+
+    def _sample_unit_disk(self, rng, n):
+        """Uniformly sample n points inside the unit disk (rejection sampling)."""
+        pts = np.empty((0, 2), dtype=np.float64)
+        while pts.shape[0] < n:
+            need = n - pts.shape[0]
+            m = int(max(need * 1.3, need + 8))
+            cand = rng.uniform(-1.0, 1.0, size=(m, 2))
+            r2 = cand[:, 0] ** 2 + cand[:, 1] ** 2
+            acc = cand[r2 <= 1.0]
+            if acc.shape[0] > 0:
+                pts = np.vstack([pts, acc])
+        return pts[:n]
 
     def effect(self):
         if not self.svg.selected:
@@ -73,19 +94,61 @@ class NoiseTiling(inkex.EffectExtension):
         rng = np.random.default_rng(noise_seed)     # batched draws: NumPy
 
         max_attempts = max(1, int(self.options.attempts))
+        polar_mode = bool(self.options.polar)
 
         # ---- 1) Batch-generate candidate coordinates ----
-        rand_vals = rng.random(max_attempts * 2)
-        cand_x_arr = area_x + rand_vals[0::2] * area_w
-        cand_y_arr = area_y + rand_vals[1::2] * area_h
+        if polar_mode:
+            cx0 = area_x + area_w * 0.5
+            cy0 = area_y + area_h * 0.5
 
-        # ---- 2) Batch-compute noise ----
-        scale_n = self.options.scale_noise
-        noise_vals = self._sample_noise_batch(
-            noise_gen,
-            cand_x_arr * scale_n,
-            cand_y_arr * scale_n,
-        )
+            # Circumscribed ellipse of the rectangle:
+            # semi-axes = half-size * sqrt(2)
+            rx = max(area_w * 0.5, 1e-6) * math.sqrt(2.0)
+            ry = max(area_h * 0.5, 1e-6) * math.sqrt(2.0)
+
+            # Rejection-sample ellipse points that fall inside the rectangle.
+            # Rect area / ellipse area = 2/pi ~= 0.6366 -> need ~1.57x attempts.
+            need = max_attempts
+            u_list = []
+            v_list = []
+            while len(u_list) < need:
+                batch = int(max((need - len(u_list)) * 1.7, 16))
+                uv = self._sample_unit_disk(rng, batch)
+                uu = uv[:, 0]
+                vv = uv[:, 1]
+                xs = cx0 + uu * rx
+                ys = cy0 + vv * ry
+                inside = (
+                    (xs >= area_x) & (xs <= area_x + area_w) &
+                    (ys >= area_y) & (ys <= area_y + area_h)
+                )
+                u_list.append(uu[inside])
+                v_list.append(vv[inside])
+
+            u = np.concatenate(u_list)[:need]
+            v = np.concatenate(v_list)[:need]
+            cand_x_arr = cx0 + u * rx
+            cand_y_arr = cy0 + v * ry
+
+            # Polar-coordinate noise sampling: normalized circumscribed-ellipse coords.
+            sn = self.options.scale_noise
+            noise_vals = self._sample_noise_batch(noise_gen, u * sn, v * sn)
+
+            # Per-candidate polar angle (degrees) for rotation.
+            angle_deg_arr = np.degrees(np.arctan2(v, u))
+        else:
+            rand_vals = rng.random(max_attempts * 2)
+            cand_x_arr = area_x + rand_vals[0::2] * area_w
+            cand_y_arr = area_y + rand_vals[1::2] * area_h
+
+            scale_n = self.options.scale_noise
+            noise_vals = self._sample_noise_batch(
+                noise_gen,
+                cand_x_arr * scale_n,
+                cand_y_arr * scale_n,
+            )
+            angle_deg_arr = None
+
         prob_arr = (noise_vals + 1.0) / 2.0 - self.options.threshold
 
         # ---- 3) Batch acceptance test ----
@@ -135,6 +198,7 @@ class NoiseTiling(inkex.EffectExtension):
         placed_arr = np.empty((0, 4), dtype=np.float64)
         pad = float(self.options.padding)
 
+        new_elems = []
         for k in range(n_acc):
             idx = accept_idx[k]
             cand_x = cand_x_arr[idx]
@@ -150,6 +214,10 @@ class NoiseTiling(inkex.EffectExtension):
 
             rand_scale = scale_arr[k]
             rand_rotation = rotate_arr[k]
+
+            # Polar mode: rotate by polar angle in addition to random rotation.
+            if polar_mode and angle_deg_arr is not None:
+                rand_rotation += float(angle_deg_arr[idx])
 
             diag = math.sqrt(orig_w ** 2 + orig_h ** 2)
             half_size = (diag * rand_scale) / 2.0
@@ -190,8 +258,10 @@ class NoiseTiling(inkex.EffectExtension):
             else:
                 new_elem.set('transform', str(tr))
 
-            container.append(new_elem)
+            new_elems.append(new_elem)
             placed_arr = np.vstack([placed_arr, cand_bbox])
+
+        container.extend(new_elems)
 
 
 if __name__ == '__main__':
